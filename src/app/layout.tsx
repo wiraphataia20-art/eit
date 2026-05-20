@@ -7,6 +7,7 @@ import ThemeProvider from '@/components/ThemeProvider'
 export const metadata: Metadata = {
   title: 'SMO — Student Union',
   description: 'สโมสรนักศึกษา คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
+  icons: { icon: '/logo.png' },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
