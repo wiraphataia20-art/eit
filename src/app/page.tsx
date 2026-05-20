@@ -1,65 +1,78 @@
-import Image from "next/image";
+import Link from 'next/link'
+import { cookies } from 'next/headers'
+import { Megaphone, Calendar, ImageIcon, BookOpen, Users, ArrowRight } from 'lucide-react'
+import PinnedAnnouncement from '@/components/PinnedAnnouncement'
+import HeroVideo from '@/components/HeroVideo'
 
-export default function Home() {
+const publicSections = [
+  { href: '/announcements', icon: Megaphone, label: 'Announcements', sub: 'ประกาศกิจกรรม' },
+  { href: '/calendar', icon: Calendar, label: 'Calendar', sub: 'ปฏิทินกิจกรรม' },
+  { href: '/gallery', icon: ImageIcon, label: 'Gallery', sub: 'แกลเลอรี่รูปภาพ' },
+  { href: '/team', icon: Users, label: 'Team', sub: 'ทีมงานสโมสร' },
+]
+
+const worksSection = { href: '/works', icon: BookOpen, label: 'Works', sub: 'คลังผลงาน' }
+
+export default async function Home() {
+  const session = (await cookies()).get('session')?.value
+  const sections = session ? [...publicSections, worksSection] : publicSections
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
+    <div>
+      {/* Hero */}
+      <div className="relative overflow-hidden bg-[#0D0608]">
+        <HeroVideo />
+        {/* Bottom fade to page background */}
+
+        <div className="relative max-w-6xl mx-auto px-6 py-32 text-center">
+          {/* Badge */}
+          <div className="inline-flex items-center gap-2 border border-[#7B1113]/50 text-[#E05555] text-xs font-mono px-4 py-1.5 rounded-full mb-8 tracking-widest uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C41E20] animate-pulse inline-block" />
+            Engineering &amp; Industrial Technology · PSRU
+          </div>
+
+          <h1 className="text-5xl md:text-6xl font-extrabold text-white mb-4 leading-tight tracking-tight">
+            Student Union
           </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+          <p className="text-white/65 text-base md:text-lg max-w-lg mx-auto mb-10 leading-relaxed">
+            คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม<br />
+            มหาวิทยาลัยราชภัฏพิบูลสงคราม
           </p>
+
+          <Link href="/announcements"
+            className="inline-flex items-center gap-2 bg-[#7B1113] text-white font-semibold px-8 py-3.5 rounded-xl hover:bg-[#9B1416] transition-all duration-200 shadow-lg shadow-[#7B1113]/30">
+            ดูประกาศล่าสุด <ArrowRight size={17} />
+          </Link>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+      </div>
+
+      <PinnedAnnouncement />
+
+      {/* Menu */}
+      <div className="max-w-6xl mx-auto px-6 py-16">
+        <div className="flex items-center gap-4 mb-10">
+          <div className="h-px flex-1 bg-slate-100 dark:bg-[#2D1214]" />
+          <span className="text-xs font-mono text-slate-400 dark:text-slate-600 tracking-[0.2em] uppercase">Menu</span>
+          <div className="h-px flex-1 bg-slate-100 dark:bg-[#2D1214]" />
         </div>
-      </main>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {sections.map(({ href, icon: Icon, label, sub }) => (
+            <Link key={href} href={href}
+              className="group bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 p-5 hover:border-[#7B1113]/30 dark:hover:border-[#7B1113]/50 hover:shadow-lg hover:shadow-[#7B1113]/5 hover:-translate-y-0.5 transition-all duration-300 flex items-center gap-4">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors duration-200"
+                style={{ background: 'rgba(123,17,19,0.08)' }}>
+                <Icon size={20} className="text-[#7B1113]" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="font-bold text-slate-800 dark:text-slate-100 text-sm tracking-wide">{label}</p>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{sub}</p>
+              </div>
+              <ArrowRight size={15} className="text-slate-200 dark:text-slate-700 group-hover:text-[#7B1113] group-hover:translate-x-0.5 transition-all duration-200 shrink-0" />
+            </Link>
+          ))}
+        </div>
+      </div>
     </div>
-  );
+  )
 }
