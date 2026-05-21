@@ -19,5 +19,14 @@ export async function POST(req: NextRequest) {
     path: '/',
   })
 
+  // non-HttpOnly cookie for UI display only (does not grant access)
+  res.cookies.set('ui_role', role, {
+    httpOnly: false,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 86400,
+    path: '/',
+  })
+
   return res
 }

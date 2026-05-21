@@ -14,10 +14,11 @@ const baseLinks = [
   { href: '/calendar', label: 'ปฏิทิน' },
   { href: '/gallery', label: 'แกลเลอรี่' },
   { href: '/team', label: 'ทีมงาน' },
+  { href: '/about', label: 'เกี่ยวกับ' },
 ]
 
 function getSession() {
-  const match = document.cookie.match(/session=([^;]+)/)
+  const match = document.cookie.match(/ui_role=([^;]+)/)
   return match ? match[1] : null
 }
 
@@ -36,7 +37,7 @@ export default function Navbar() {
 
   async function handleLogout() {
     if (isConfigured) await signOut(auth)
-    document.cookie = 'session=; path=/; max-age=0'
+    await fetch('/api/logout', { method: 'POST' })
     setSession(null)
     router.push('/')
   }
