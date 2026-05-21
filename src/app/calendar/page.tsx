@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -27,18 +27,17 @@ export default function CalendarPage() {
   const [selectedDay, setSelectedDay] = useState<Date | null>(null)
 
   useEffect(() => {
-    async function fetch() {
-      if (!isConfigured) { setFirestoreItems(DEV_DATA); setLoading(false); return }
-      const q = query(collection(db, 'events'), orderBy('startDate', 'asc'))
-      const snap = await getDocs(q)
+    if (!isConfigured) { setFirestoreItems(DEV_DATA); setLoading(false); return }
+    const q = query(collection(db, 'events'), orderBy('startDate', 'asc'))
+    const unsub = onSnapshot(q, snap => {
       setFirestoreItems(snap.docs.map(d => ({
         id: d.id, ...d.data(),
         startDate: d.data().startDate?.toDate(),
         endDate: d.data().endDate?.toDate(),
       })))
       setLoading(false)
-    }
-    fetch()
+    })
+    return unsub
   }, [])
 
   const holidays = getHolidaysForYear(currentMonth.getFullYear())

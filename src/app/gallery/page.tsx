@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { collection, getDocs, query, orderBy } from 'firebase/firestore'
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
 import { ImageIcon, FolderOpen, ExternalLink } from 'lucide-react'
 import { format } from 'date-fns'
@@ -12,14 +12,13 @@ export default function GalleryPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function fetch() {
-      if (!isConfigured) { setLoading(false); return }
-      const q = query(collection(db, 'albums'), orderBy('createdAt', 'desc'))
-      const snap = await getDocs(q)
+    if (!isConfigured) { setLoading(false); return }
+    const q = query(collection(db, 'albums'), orderBy('createdAt', 'desc'))
+    const unsub = onSnapshot(q, snap => {
       setAlbums(snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().date?.toDate() })))
       setLoading(false)
-    }
-    fetch()
+    })
+    return unsub
   }, [])
 
   return (

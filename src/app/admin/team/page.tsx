@@ -1,10 +1,10 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc } from 'firebase/firestore'
+import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, getDoc, setDoc, updateDoc } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
 import { uploadToCloudinary } from '@/lib/cloudinary'
-import { Trash2, Plus, Settings, Users, List, X, User } from 'lucide-react'
+import { Trash2, Plus, Settings, Users, List, X, User, Pencil } from 'lucide-react'
 
 const DEFAULT_POSITIONS = [
   'ประธานสโมสร', 'รองประธานกิจการนักศึกษา', 'รองประธานประชาสัมพันธ์',
@@ -32,6 +32,9 @@ export default function AdminTeamPage() {
   const [department, setDepartment] = useState('')
   const [role, setRole] = useState<'หัวหน้าฝ่าย' | 'สมาชิก'>('สมาชิก')
   const [name, setName] = useState('')
+  const [major, setMajor] = useState('')
+  const [yearLevel, setYearLevel] = useState('')
+  const [bio, setBio] = useState('')
   const [contactType, setContactType] = useState('Line')
   const [contactValue, setContactValue] = useState('')
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -39,6 +42,21 @@ export default function AdminTeamPage() {
 
   const [members, setMembers] = useState<any[]>([])
   const [filterYear, setFilterYear] = useState('')
+
+  const [editingMember, setEditingMember] = useState<any | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editAcademicYear, setEditAcademicYear] = useState('')
+  const [editGroup, setEditGroup] = useState<'บริหาร' | 'ฝ่าย'>('บริหาร')
+  const [editPosition, setEditPosition] = useState('')
+  const [editDepartment, setEditDepartment] = useState('')
+  const [editRole, setEditRole] = useState<'หัวหน้าฝ่าย' | 'สมาชิก'>('สมาชิก')
+  const [editContactType, setEditContactType] = useState('Line')
+  const [editContactValue, setEditContactValue] = useState('')
+  const [editMajor, setEditMajor] = useState('')
+  const [editYearLevel, setEditYearLevel] = useState('')
+  const [editBio, setEditBio] = useState('')
+  const [editImageFile, setEditImageFile] = useState<File | null>(null)
+  const [editLoading, setEditLoading] = useState(false)
 
   async function loadConfig() {
     if (!isConfigured) return
@@ -98,13 +116,13 @@ export default function AdminTeamPage() {
       let imageUrl = ''
       if (imageFile) imageUrl = await uploadToCloudinary(imageFile)
       await addDoc(collection(db, 'teamMembers'), {
-        name, academicYear, group,
+        name, academicYear, group, major, yearLevel, bio,
         position: group === 'บริหาร' ? position : role,
         department: group === 'ฝ่าย' ? department : '',
         contactType, contactValue,
         imageUrl, order: Date.now(),
       })
-      setName(''); setContactValue(''); setImageFile(null)
+      setName(''); setMajor(''); setYearLevel(''); setBio(''); setContactValue(''); setImageFile(null)
       fetchMembers()
     } catch (err: any) { alert(err.message) }
     setLoading(false)
@@ -114,6 +132,53 @@ export default function AdminTeamPage() {
     if (!isConfigured) return
     await deleteDoc(doc(db, 'teamMembers', id))
     fetchMembers()
+  }
+
+  function openEdit(member: any) {
+    setEditingMember(member)
+    setEditName(member.name || '')
+    setEditAcademicYear(member.academicYear || '')
+    setEditGroup(member.group || 'บริหาร')
+    setEditDepartment(member.department || '')
+    setEditContactType(member.contactType || 'Line')
+    setEditContactValue(member.contactValue || '')
+    setEditMajor(member.major || '')
+    setEditYearLevel(member.yearLevel || '')
+    setEditBio(member.bio || '')
+    setEditImageFile(null)
+    if (member.group === 'ฝ่าย') {
+      setEditRole(member.position as any || 'สมาชิก')
+      setEditPosition('')
+    } else {
+      setEditPosition(member.position || '')
+      setEditRole('สมาชิก')
+    }
+  }
+
+  async function handleUpdate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!isConfigured || !editingMember) return
+    setEditLoading(true)
+    try {
+      let imageUrl = editingMember.imageUrl || ''
+      if (editImageFile) imageUrl = await uploadToCloudinary(editImageFile)
+      await updateDoc(doc(db, 'teamMembers', editingMember.id), {
+        name: editName,
+        academicYear: editAcademicYear,
+        group: editGroup,
+        position: editGroup === 'บริหาร' ? editPosition : editRole,
+        department: editGroup === 'ฝ่าย' ? editDepartment : '',
+        contactType: editContactType,
+        contactValue: editContactValue,
+        major: editMajor,
+        yearLevel: editYearLevel,
+        bio: editBio,
+        imageUrl,
+      })
+      setEditingMember(null)
+      fetchMembers()
+    } catch (err: any) { alert(err.message) }
+    setEditLoading(false)
   }
 
   const years = [...new Set(members.map(m => m.academicYear).filter(Boolean))].sort().reverse() as string[]
@@ -191,6 +256,19 @@ export default function AdminTeamPage() {
             className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
 
           <div className="flex gap-3">
+            <input value={major} onChange={e => setMajor(e.target.value)} placeholder="สาขาวิชา (ไม่บังคับ)"
+              className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+            <select value={yearLevel} onChange={e => setYearLevel(e.target.value)}
+              className="w-32 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+              <option value="">ชั้นปี</option>
+              {['ปี 1','ปี 2','ปี 3','ปี 4','จบการศึกษา'].map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+
+          <textarea value={bio} onChange={e => setBio(e.target.value)} placeholder="คำแนะนำตัว / คติประจำใจ (ไม่บังคับ)" rows={2}
+            className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+          <div className="flex gap-3">
             <select value={contactType} onChange={e => setContactType(e.target.value)}
               className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
               <option>Line</option>
@@ -244,9 +322,14 @@ export default function AdminTeamPage() {
                 </p>
                 <p className="text-xs text-slate-400 mt-0.5">ปีการศึกษา {item.academicYear}</p>
               </div>
-              <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 transition shrink-0">
-                <Trash2 size={18} />
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <button onClick={() => openEdit(item)} className="text-slate-400 hover:text-blue-600 transition">
+                  <Pencil size={16} />
+                </button>
+                <button onClick={() => handleDelete(item.id)} className="text-red-400 hover:text-red-600 transition">
+                  <Trash2 size={18} />
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -301,6 +384,101 @@ export default function AdminTeamPage() {
                 </span>
               ))}
             </div>
+          </div>
+        </div>
+      )}
+      {/* Edit Modal */}
+      {editingMember && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm px-4">
+          <div className="bg-white rounded-2xl border border-slate-100 p-6 w-full max-w-md shadow-xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="font-semibold text-slate-800">แก้ไขข้อมูลสมาชิก</h2>
+              <button onClick={() => setEditingMember(null)} className="text-slate-400 hover:text-slate-600 transition">
+                <X size={18} />
+              </button>
+            </div>
+            <form onSubmit={handleUpdate} className="flex flex-col gap-4">
+              <input value={editAcademicYear} onChange={e => setEditAcademicYear(e.target.value)} required
+                placeholder="ปีการศึกษา"
+                className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+              <div className="flex rounded-xl border border-slate-200 overflow-hidden text-sm">
+                {(['บริหาร', 'ฝ่าย'] as const).map(g => (
+                  <button key={g} type="button" onClick={() => setEditGroup(g)}
+                    className={`flex-1 py-2.5 transition ${editGroup === g ? 'bg-blue-700 text-white' : 'text-slate-500 hover:bg-slate-50'}`}>
+                    {g === 'บริหาร' ? 'คณะกรรมการบริหาร' : 'สมาชิกฝ่าย'}
+                  </button>
+                ))}
+              </div>
+
+              {editGroup === 'บริหาร' ? (
+                <select value={editPosition} onChange={e => setEditPosition(e.target.value)} required
+                  className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">เลือกตำแหน่ง</option>
+                  {positions.map(p => <option key={p} value={p}>{p}</option>)}
+                </select>
+              ) : (
+                <div className="flex gap-3">
+                  <select value={editDepartment} onChange={e => setEditDepartment(e.target.value)} required
+                    className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="">เลือกฝ่าย</option>
+                    {departments.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select value={editRole} onChange={e => setEditRole(e.target.value as any)}
+                    className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                    <option value="หัวหน้าฝ่าย">หัวหน้าฝ่าย</option>
+                    <option value="สมาชิก">สมาชิก</option>
+                  </select>
+                </div>
+              )}
+
+              <input value={editName} onChange={e => setEditName(e.target.value)} required placeholder="ชื่อ-นามสกุล"
+                className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+              <div className="flex gap-3">
+                <input value={editMajor} onChange={e => setEditMajor(e.target.value)} placeholder="สาขาวิชา (ไม่บังคับ)"
+                  className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+                <select value={editYearLevel} onChange={e => setEditYearLevel(e.target.value)}
+                  className="w-32 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option value="">ชั้นปี</option>
+                  {['ปี 1','ปี 2','ปี 3','ปี 4','จบการศึกษา'].map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+
+              <textarea value={editBio} onChange={e => setEditBio(e.target.value)} placeholder="คำแนะนำตัว / คติประจำใจ (ไม่บังคับ)" rows={2}
+                className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+
+              <div className="flex gap-3">
+                <select value={editContactType} onChange={e => setEditContactType(e.target.value)}
+                  className="border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+                  <option>Line</option>
+                  <option>Instagram</option>
+                  <option>Facebook</option>
+                  <option value="อีเมล">อีเมล</option>
+                  <option value="อื่นๆ">อื่นๆ</option>
+                </select>
+                <input value={editContactValue} onChange={e => setEditContactValue(e.target.value)}
+                  placeholder="ช่องทางติดต่อ"
+                  className="flex-1 border border-slate-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+              </div>
+
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-slate-500">เปลี่ยนรูปภาพ (ไม่บังคับ)</label>
+                <input type="file" accept="image/*" onChange={e => setEditImageFile(e.target.files?.[0] || null)}
+                  className="text-sm text-slate-500 border border-slate-200 rounded-xl px-4 py-2" />
+              </div>
+
+              <div className="flex gap-3 mt-1">
+                <button type="button" onClick={() => setEditingMember(null)}
+                  className="flex-1 border border-slate-200 text-slate-500 rounded-xl py-2 text-sm hover:bg-slate-50 transition">
+                  ยกเลิก
+                </button>
+                <button type="submit" disabled={editLoading}
+                  className="flex-1 bg-blue-700 text-white rounded-xl py-2 text-sm font-medium hover:bg-blue-800 transition disabled:opacity-50">
+                  {editLoading ? 'กำลังบันทึก...' : 'บันทึก'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

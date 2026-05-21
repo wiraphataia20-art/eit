@@ -5,7 +5,7 @@ import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 
 export const metadata: Metadata = {
-  title: 'SMO — Student Union',
+  title: 'SMO Engineering · PSRU',
   description: 'สโมสรนักศึกษา คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
   icons: { icon: '/logo.png' },
 }

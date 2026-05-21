@@ -3,6 +3,7 @@ import { cookies } from 'next/headers'
 import { Megaphone, Calendar, ImageIcon, BookOpen, Users, ArrowRight } from 'lucide-react'
 import PinnedAnnouncement from '@/components/PinnedAnnouncement'
 import HeroVideo from '@/components/HeroVideo'
+import SplashNotice from '@/components/SplashNotice'
 
 const publicSections = [
   { href: '/announcements', icon: Megaphone, label: 'Announcements', sub: 'ประกาศกิจกรรม' },
@@ -19,6 +20,7 @@ export default async function Home() {
 
   return (
     <div>
+      <SplashNotice />
       {/* Hero */}
       <div className="relative overflow-hidden bg-[#0D0608]">
         <HeroVideo />

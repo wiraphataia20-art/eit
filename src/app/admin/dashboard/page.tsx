@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Megaphone, Calendar, ImageIcon, BookOpen, Users, UserCircle } from 'lucide-react'
+import { Megaphone, Calendar, ImageIcon, BookOpen, Users, UserCircle, Bell } from 'lucide-react'
 
 const sections = [
   { href: '/admin/announcements', icon: Megaphone, label: 'จัดการประกาศ', gradient: 'from-blue-500 to-blue-600' },
@@ -8,6 +8,7 @@ const sections = [
   { href: '/admin/works', icon: BookOpen, label: 'จัดการคลังงาน', gradient: 'from-violet-500 to-purple-600' },
   { href: '/admin/team', icon: Users, label: 'จัดการทีมงาน', gradient: 'from-rose-500 to-pink-600' },
   { href: '/admin/members', icon: UserCircle, label: 'จัดการสมาชิก', gradient: 'from-indigo-500 to-blue-600' },
+  { href: '/admin/notices', icon: Bell, label: 'ประกาศหน้าแรก', gradient: 'from-amber-400 to-orange-500' },
 ]
 
 export default function DashboardPage() {
