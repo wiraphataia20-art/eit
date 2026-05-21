@@ -30,7 +30,9 @@ export default function SplashNotice() {
           id: d.id, ...d.data(),
           startDate: d.data().startDate?.toDate?.() ?? null,
           endDate: d.data().endDate?.toDate?.() ?? null,
-        }))
+          createdAt: d.data().createdAt,
+          duration: d.data().duration,
+        } as any))
         .filter(n => {
           if (n.startDate && n.startDate > now) return false
           if (n.endDate && n.endDate < now) return false
