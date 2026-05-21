@@ -20,15 +20,16 @@ export default function LoginPage() {
     setError('')
 
     if (!isConfigured) {
-      if (email === 'admin@test.com' && password === 'admin1234') {
-        document.cookie = 'session=admin; path=/; max-age=86400'
-        router.push('/admin/dashboard')
-      } else if (email === 'member@test.com' && password === 'member1234') {
-        document.cookie = 'session=member; path=/; max-age=86400'
-        router.push('/calendar')
-      } else {
+      let role = ''
+      if (email === 'admin@test.com' && password === 'admin1234') role = 'admin'
+      else if (email === 'member@test.com' && password === 'member1234') role = 'member'
+      else {
         setError('Dev mode — admin: admin@test.com / admin1234 · member: member@test.com / member1234')
+        setLoading(false)
+        return
       }
+      await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) })
+      router.push(role === 'admin' ? '/admin/dashboard' : '/calendar')
       setLoading(false)
       return
     }
@@ -37,7 +38,7 @@ export default function LoginPage() {
       const { user } = await signInWithEmailAndPassword(auth, email, password)
       const profileSnap = await getDoc(doc(db, 'profiles', user.uid))
       const role = profileSnap.data()?.role || 'member'
-      document.cookie = `session=${role}; path=/; max-age=86400`
+      await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ role }) })
       router.push(role === 'admin' ? '/admin/dashboard' : '/calendar')
     } catch {
       setError('อีเมลหรือรหัสผ่านไม่ถูกต้อง')

@@ -10,7 +10,7 @@ export default function AdminLogout() {
 
   async function handleLogout() {
     if (isConfigured) await signOut(auth)
-    document.cookie = 'session=; path=/; max-age=0'
+    await fetch('/api/logout', { method: 'POST' })
     router.push('/admin/login')
   }
 
