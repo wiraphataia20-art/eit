@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { doc, onSnapshot } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
-import { Info, Phone, Mail, MessageCircle, Globe, AtSign } from 'lucide-react'
+import { Phone, Mail, MessageCircle, Globe, AtSign } from 'lucide-react'
 
 const DEV_DATA = {
   history: 'สโมสรนักศึกษาคณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
@@ -44,9 +44,7 @@ export default function AboutPage() {
     <div className="max-w-3xl mx-auto px-6 py-12">
       {/* Header */}
       <div className="flex items-center gap-3 mb-10">
-        <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#7B1113] to-[#9B1416] flex items-center justify-center shadow-sm">
-          <Info size={20} className="text-white" />
-        </div>
+        <img src="/logo.png" alt="SMO" className="w-10 h-10 object-contain" />
         <div>
           <h1 className="text-2xl font-bold text-slate-800 dark:text-white">เกี่ยวกับสโมสร</h1>
           <p className="text-sm text-slate-500">คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม · PSRU</p>
