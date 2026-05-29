@@ -14,8 +14,8 @@ export async function uploadFileToSupabase(file: File): Promise<string> {
     throw new Error('ยังไม่ได้ตั้งค่า Supabase — กรุณาเพิ่ม NEXT_PUBLIC_SUPABASE_URL และ NEXT_PUBLIC_SUPABASE_ANON_KEY ใน Vercel')
   }
 
-  const folder = `${Date.now()}-${Math.random().toString(36).slice(2)}`
-  const fileName = `${folder}/${file.name}`
+  const ext = file.name.split('.').pop()?.toLowerCase() || 'bin'
+  const fileName = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
 
   const { error } = await supabase.storage
     .from('works')
