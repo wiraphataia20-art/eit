@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { collection, getDocs, addDoc, deleteDoc, doc, query, orderBy, serverTimestamp, updateDoc } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
-import { uploadFileToSupabase } from '@/lib/supabase'
+import { uploadFileToSupabase, isSupabaseConfigured } from '@/lib/supabase'
 import { Trash2, Plus, ExternalLink, Upload, Link, X, Search, CheckCircle, AlertCircle, Eye, EyeOff, Pencil } from 'lucide-react'
 import { format } from 'date-fns'
 import { th } from 'date-fns/locale'
@@ -197,6 +197,14 @@ export default function AdminWorksPage() {
         {!isConfigured && (
           <div className="bg-amber-50 border border-amber-200 text-amber-700 text-sm px-4 py-3 rounded-xl mb-6">
             Dev mode — ต้องตั้งค่า Firebase ก่อนจึงจะบันทึกได้
+          </div>
+        )}
+
+        {!isSupabaseConfigured && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm px-4 py-3 rounded-xl mb-6">
+            <strong>ยังไม่ได้ตั้งค่า Supabase</strong> — การอัปโหลดไฟล์จะไม่ทำงาน<br />
+            กรุณาเพิ่ม <code className="bg-red-100 px-1 rounded">NEXT_PUBLIC_SUPABASE_URL</code> และ{' '}
+            <code className="bg-red-100 px-1 rounded">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> ใน Vercel Environment Variables
           </div>
         )}
 
