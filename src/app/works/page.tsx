@@ -95,6 +95,12 @@ export default function WorksPage() {
     return work.fileUrls?.length > 0 ? work.fileUrls : work.fileUrl ? [work.fileUrl] : []
   }
 
+  function getDisplayName(work: any, index: number, url: string): string {
+    if (work.fileNames?.[index]) return work.fileNames[index]
+    if (isDriveUrl(url)) return 'Google Drive'
+    return `ไฟล์ ${index + 1}`
+  }
+
   return (
     <div>
       <MemberHeader />
@@ -260,7 +266,7 @@ export default function WorksPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <p className="text-sm font-medium text-slate-700 truncate">
-                              {getFileName(url)}
+                              {getDisplayName(selectedWork, i, url)}
                             </p>
                             <p className="text-xs text-slate-400 mt-0.5">
                               {isDriveUrl(url) ? 'Google Drive' : 'คลิกเพื่อเปิดไฟล์'}

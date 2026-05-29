@@ -72,8 +72,11 @@ export default function AdminWorksPage() {
     try {
       let fileUrl = ''
       let fileUrls: string[] = []
+      let fileNames: string[] = []
       if (inputMode === 'upload' && files.length > 0) {
-        fileUrls = await Promise.all(files.map(f => uploadFileToSupabase(f)))
+        const results = await Promise.all(files.map(f => uploadFileToSupabase(f)))
+        fileUrls = results.map(r => r.url)
+        fileNames = results.map(r => r.name)
         fileUrl = fileUrls[0]
       } else if (inputMode === 'link' && driveUrl) {
         const cleanUrl = driveUrl.split('?')[0].trim()
@@ -87,6 +90,7 @@ export default function AdminWorksPage() {
       await addDoc(collection(db, 'works'), {
         title, description, category, academicYear, status, fileUrl,
         fileUrls: fileUrls.length > 0 ? fileUrls : (fileUrl ? [fileUrl] : []),
+        fileNames,
         createdAt: serverTimestamp(),
       })
       setTitle(''); setDescription(''); setCategory(''); setFiles([]); setDriveUrl('')
@@ -141,9 +145,14 @@ export default function AdminWorksPage() {
         ? editingItem.fileUrls
         : editingItem.fileUrl ? [editingItem.fileUrl] : []
 
+      let existingNames: string[] = editingItem.fileNames?.length > 0
+        ? editingItem.fileNames
+        : existingUrls.map((_: string, i: number) => `ไฟล์ ${i + 1}`)
+
       if (editNewFiles.length > 0) {
-        const newUrls = await Promise.all(editNewFiles.map(f => uploadFileToSupabase(f)))
-        existingUrls = [...existingUrls, ...newUrls]
+        const results = await Promise.all(editNewFiles.map(f => uploadFileToSupabase(f)))
+        existingUrls = [...existingUrls, ...results.map(r => r.url)]
+        existingNames = [...existingNames, ...results.map(r => r.name)]
       }
 
       await updateDoc(doc(db, 'works', editingItem.id), {
@@ -154,6 +163,7 @@ export default function AdminWorksPage() {
         status: editStatus,
         fileUrl: existingUrls[0] || '',
         fileUrls: existingUrls,
+        fileNames: existingNames,
       })
       setEditingItem(null)
       fetchItems()
@@ -164,13 +174,16 @@ export default function AdminWorksPage() {
 
   async function removeFileFromItem(item: any, urlToRemove: string) {
     if (!isConfigured) return
-    const urls: string[] = (item.fileUrls?.length > 0 ? item.fileUrls : item.fileUrl ? [item.fileUrl] : [])
-      .filter((u: string) => u !== urlToRemove)
+    const allUrls: string[] = item.fileUrls?.length > 0 ? item.fileUrls : item.fileUrl ? [item.fileUrl] : []
+    const idx = allUrls.indexOf(urlToRemove)
+    const urls = allUrls.filter((u: string) => u !== urlToRemove)
+    const names: string[] = (item.fileNames || []).filter((_: string, i: number) => i !== idx)
     await updateDoc(doc(db, 'works', item.id), {
       fileUrl: urls[0] || '',
       fileUrls: urls,
+      fileNames: names,
     })
-    setEditingItem((prev: any) => prev ? { ...prev, fileUrls: urls, fileUrl: urls[0] || '' } : null)
+    setEditingItem((prev: any) => prev ? { ...prev, fileUrls: urls, fileUrl: urls[0] || '', fileNames: names } : null)
     fetchItems()
     show('ลบไฟล์แล้ว')
   }
@@ -332,7 +345,7 @@ export default function AdminWorksPage() {
                   {(item.fileUrls?.length > 0 ? item.fileUrls : item.fileUrl ? [item.fileUrl] : []).map((url: string, i: number) => (
                     <a key={i} href={url} target="_blank" rel="noopener noreferrer"
                       className="inline-flex items-center gap-1 text-xs text-blue-500 hover:underline">
-                      <ExternalLink size={11} />{item.fileUrls?.length > 1 ? `ไฟล์ ${i + 1}` : 'เปิดไฟล์'}
+                      <ExternalLink size={11} />{item.fileNames?.[i] || (item.fileUrls?.length > 1 ? `ไฟล์ ${i + 1}` : 'เปิดไฟล์')}
                     </a>
                   ))}
                 </div>
@@ -408,8 +421,9 @@ export default function AdminWorksPage() {
                       <label className="text-xs text-slate-500 font-medium">ไฟล์ที่มีอยู่</label>
                       {urls.map((url, i) => {
                         const name = (() => {
+                          if (editingItem.fileNames?.[i]) return editingItem.fileNames[i]
                           if (url.includes('drive.google.com') || url.includes('docs.google.com')) return 'Google Drive'
-                          try { return decodeURIComponent(url.split('/').pop() || `ไฟล์ ${i + 1}`) } catch { return `ไฟล์ ${i + 1}` }
+                          return `ไฟล์ ${i + 1}`
                         })()
                         return (
                           <div key={i} className="flex items-center justify-between text-xs bg-slate-50 px-3 py-2 rounded-lg border border-slate-100">
