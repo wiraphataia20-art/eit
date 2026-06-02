@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
-import { dateFnsLocalizer, Calendar as BigCalendar, Views, type View } from 'react-big-calendar'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const { dateFnsLocalizer, Calendar: BigCalendar, Views } = require('react-big-calendar')
 import { format, parse, startOfWeek, getDay, addDays, isSameDay } from 'date-fns'
 import { th } from 'date-fns/locale'
 import { getHolidaysForYear } from '@/lib/holidays'
@@ -45,7 +46,7 @@ export default function CalendarPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(new Date())
-  const [view, setView] = useState<View>(Views.MONTH)
+  const [view, setView] = useState<string>(Views.MONTH)
   const [selected, setSelected] = useState<any | null>(null)
 
   useEffect(() => {
@@ -200,7 +201,7 @@ export default function CalendarPage() {
           date={date}
           view={view}
           onNavigate={d => { setDate(d) }}
-          onView={v => setView(v)}
+          onView={(v: string) => setView(v)}
           culture="th-TH"
           messages={MESSAGES}
           eventPropGetter={eventStyleGetter}
