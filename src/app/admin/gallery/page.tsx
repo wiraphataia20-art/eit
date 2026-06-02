@@ -17,6 +17,28 @@ export default function AdminGalleryPage() {
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
   const [loading, setLoading] = useState(false)
+  const [uploadingFor, setUploadingFor] = useState<string | null>(null)
+  const [addFiles, setAddFiles] = useState<File[]>([])
+  const [driveLinks, setDriveLinks] = useState<Record<string, string>>({})
+
+  function parseDriveLinks(text: string): string[] {
+    const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
+    return lines.flatMap(line => {
+      const m = line.match(/\/d\/([a-zA-Z0-9_-]+)/) ?? line.match(/[?&]id=([a-zA-Z0-9_-]+)/)
+      if (!m) return []
+      return [`https://lh3.googleusercontent.com/d/${m[1]}`]
+    })
+  }
+
+  async function handleAddDriveLinks(album: any) {
+    if (!isConfigured) return
+    const newUrls = parseDriveLinks(driveLinks[album.id] ?? '')
+    if (newUrls.length === 0) { alert('ไม่พบลิงก์ Drive ที่ถูกต้อง'); return }
+    const merged = [...(album.images ?? []), ...newUrls]
+    await updateDoc(doc(db, 'albums', album.id), { images: merged })
+    setDriveLinks(p => ({ ...p, [album.id]: '' }))
+    fetchAlbums()
+  }
 
   async function fetchAlbums() {
     if (!isConfigured) return
@@ -57,6 +79,19 @@ export default function AdminGalleryPage() {
     if (!isConfigured) return
     await deleteDoc(doc(db, 'albums', id))
     fetchAlbums()
+  }
+
+  async function handleAddImages(album: any) {
+    if (!isConfigured || addFiles.length === 0) return
+    setUploadingFor(album.id)
+    try {
+      const newUrls: string[] = await Promise.all(addFiles.map(f => uploadToCloudinary(f)))
+      const merged = [...(album.images ?? []), ...newUrls]
+      await updateDoc(doc(db, 'albums', album.id), { images: merged })
+      setAddFiles([])
+      setUploadingFor(null)
+      fetchAlbums()
+    } catch (err: any) { alert(err.message); setUploadingFor(null) }
   }
 
   async function removeImage(album: any, url: string) {
@@ -160,8 +195,9 @@ export default function AdminGalleryPage() {
               </div>
             </div>
 
-            {(album.images ?? []).length > 0 && (
-              <div className="px-4 pb-4">
+            {/* Image grid + add more */}
+            <div className="px-4 pb-4 flex flex-col gap-3">
+              {(album.images ?? []).length > 0 && (
                 <div className="grid grid-cols-6 gap-1.5">
                   {(album.images as string[]).map((url, i) => (
                     <div key={i} className="relative aspect-square group">
@@ -173,8 +209,44 @@ export default function AdminGalleryPage() {
                     </div>
                   ))}
                 </div>
+              )}
+
+              {/* Add images — upload file */}
+              <div className="flex flex-col gap-2 border-t border-slate-100 pt-3">
+                <p className="text-xs font-medium text-slate-500">เพิ่มรูปภาพ</p>
+
+                {/* Option A: upload */}
+                <div className="flex items-center gap-2">
+                  <input type="file" accept="image/*" multiple
+                    onChange={e => setAddFiles(e.target.files ? Array.from(e.target.files) : [])}
+                    className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-xl px-3 py-1.5" />
+                  <button onClick={() => handleAddImages(album)}
+                    disabled={uploadingFor === album.id || addFiles.length === 0}
+                    className="shrink-0 bg-amber-500 text-white text-xs px-3 py-1.5 rounded-xl hover:bg-amber-600 transition disabled:opacity-40">
+                    {uploadingFor === album.id ? 'กำลังอัปโหลด...' : `อัปโหลด${addFiles.length > 0 ? ` (${addFiles.length})` : ''}`}
+                  </button>
+                </div>
+
+                {/* Option B: paste Drive links */}
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-slate-400">หรือวาง Google Drive link (ทีละบรรทัด)</label>
+                  <div className="flex gap-2">
+                    <textarea
+                      value={driveLinks[album.id] ?? ''}
+                      onChange={e => setDriveLinks(p => ({ ...p, [album.id]: e.target.value }))}
+                      placeholder={'https://drive.google.com/file/d/xxx/view\nhttps://drive.google.com/file/d/yyy/view'}
+                      rows={3}
+                      className="flex-1 text-xs border border-slate-200 rounded-xl px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-amber-300"
+                    />
+                    <button onClick={() => handleAddDriveLinks(album)}
+                      disabled={!(driveLinks[album.id] ?? '').trim()}
+                      className="shrink-0 self-end bg-blue-500 text-white text-xs px-3 py-1.5 rounded-xl hover:bg-blue-600 transition disabled:opacity-40">
+                      เพิ่ม
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
+            </div>
           </div>
         ))}
         {albums.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">ยังไม่มีอัลบั้ม</div>}
