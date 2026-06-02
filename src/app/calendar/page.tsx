@@ -205,7 +205,7 @@ export default function CalendarPage() {
           culture="th-TH"
           messages={MESSAGES}
           eventPropGetter={eventStyleGetter}
-          onSelectEvent={ev => setSelected(ev)}
+          onSelectEvent={(ev: any) => setSelected(ev)}
           popup
           popupOffset={10}
         />
