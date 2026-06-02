@@ -143,6 +143,8 @@ function MemberModal({ member, onClose }: { member: any, onClose: () => void }) 
 export default function TeamPage() {
   const [members, setMembers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   const [selectedYear, setSelectedYear] = useState('')
   const [selectedMember, setSelectedMember] = useState<any | null>(null)
 
@@ -158,9 +160,12 @@ export default function TeamPage() {
         return years.length > 0 ? (years[0] as string) : ''
       })
       setLoading(false)
+    }, () => {
+      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ')
+      setLoading(false)
     })
     return unsub
-  }, [])
+  }, [retryKey])
 
   const years = [...new Set(members.map(m => m.academicYear).filter(Boolean))].sort().reverse() as string[]
   const filtered = members.filter(m => m.academicYear === selectedYear)
@@ -209,6 +214,13 @@ export default function TeamPage() {
       {loading ? (
         <div className="flex justify-center py-24">
           <div className="w-8 h-8 border-4 border-rose-200 border-t-rose-500 rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-slate-400">
+          <Users size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="mb-4">{error}</p>
+          <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1) }}
+            className="text-sm text-rose-500 hover:underline">ลองใหม่</button>
         </div>
       ) : filtered.length === 0 ? (
         <div className="text-center py-24 text-slate-400">

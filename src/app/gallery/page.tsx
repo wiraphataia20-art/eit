@@ -10,6 +10,8 @@ import { th } from 'date-fns/locale'
 export default function GalleryPage() {
   const [albums, setAlbums] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
@@ -19,9 +21,12 @@ export default function GalleryPage() {
     const unsub = onSnapshot(q, snap => {
       setAlbums(snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().date?.toDate() })))
       setLoading(false)
+    }, () => {
+      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ')
+      setLoading(false)
     })
     return unsub
-  }, [])
+  }, [retryKey])
 
   const images: string[] = selectedAlbum?.images ?? []
 
@@ -59,6 +64,13 @@ export default function GalleryPage() {
       {loading ? (
         <div className="flex justify-center py-24">
           <div className="w-8 h-8 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-slate-400">
+          <ImageIcon size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="mb-4">{error}</p>
+          <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1) }}
+            className="text-sm text-amber-500 hover:underline">ลองใหม่</button>
         </div>
       ) : albums.length === 0 ? (
         <div className="text-center py-24 text-slate-400">

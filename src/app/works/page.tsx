@@ -56,6 +56,8 @@ function FileExtBadge({ url }: { url: string }) {
 export default function WorksPage() {
   const [works, setWorks] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   const [viewerUrl, setViewerUrl] = useState<string | null>(null)
   const [selectedWork, setSelectedWork] = useState<any | null>(null)
   const [filterYear, setFilterYear] = useState('')
@@ -79,9 +81,12 @@ export default function WorksPage() {
         .filter((w: any) => !w.status || w.status === 'เผยแพร่')
       )
       setLoading(false)
+    }, () => {
+      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ')
+      setLoading(false)
     })
     return unsub
-  }, [])
+  }, [retryKey])
 
   const years = [...new Set(works.map(w => w.academicYear).filter(Boolean))].sort().reverse() as string[]
   const categories = [...new Set(works.map(w => w.category).filter(Boolean))].sort() as string[]
@@ -152,6 +157,13 @@ export default function WorksPage() {
         {loading ? (
           <div className="flex justify-center py-24">
             <div className="w-8 h-8 border-4 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+          </div>
+        ) : error ? (
+          <div className="text-center py-24 text-slate-400">
+            <BookOpen size={40} className="mx-auto mb-3 opacity-30" />
+            <p className="mb-4">{error}</p>
+            <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1) }}
+              className="text-sm text-violet-600 hover:underline">ลองใหม่</button>
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-24 text-slate-400">

@@ -45,6 +45,8 @@ const MESSAGES = {
 export default function CalendarPage() {
   const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
   const [date, setDate] = useState(new Date())
   const [view, setView] = useState<string>(Views.MONTH)
   const [selected, setSelected] = useState<any | null>(null)
@@ -68,9 +70,12 @@ export default function CalendarPage() {
         }
       }))
       setLoading(false)
+    }, () => {
+      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ')
+      setLoading(false)
     })
     return unsub
-  }, [])
+  }, [retryKey])
 
   const holidays = getHolidaysForYear(date.getFullYear()).map(h => ({
     id: h.id,
@@ -189,6 +194,13 @@ export default function CalendarPage() {
       {loading ? (
         <div className="flex justify-center py-24">
           <div className="w-8 h-8 border-4 border-[#7B1113]/20 border-t-[#7B1113] rounded-full animate-spin" />
+        </div>
+      ) : error ? (
+        <div className="text-center py-24 text-slate-400">
+          <Calendar size={40} className="mx-auto mb-3 opacity-30" />
+          <p className="mb-4">{error}</p>
+          <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1) }}
+            className="text-sm text-[#7B1113] hover:underline">ลองใหม่</button>
         </div>
       ) : (
         <BigCalendar

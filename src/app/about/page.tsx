@@ -16,15 +16,20 @@ const DEV_DATA = {
 export default function AboutPage() {
   const [data, setData] = useState<any>(DEV_DATA)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [retryKey, setRetryKey] = useState(0)
 
   useEffect(() => {
     if (!isConfigured) { setLoading(false); return }
     const unsub = onSnapshot(doc(db, 'config', 'about'), snap => {
       if (snap.exists()) setData(snap.data())
       setLoading(false)
+    }, () => {
+      setError('ไม่สามารถโหลดข้อมูลได้ กรุณาตรวจสอบการเชื่อมต่อ')
+      setLoading(false)
     })
     return unsub
-  }, [])
+  }, [retryKey])
 
   const contacts = [
     { icon: Phone, label: 'โทรศัพท์', value: data.contactPhone, href: `tel:${data.contactPhone}` },
@@ -37,6 +42,14 @@ export default function AboutPage() {
   if (loading) return (
     <div className="flex justify-center py-32">
       <div className="w-8 h-8 border-4 border-[#7B1113]/20 border-t-[#7B1113] rounded-full animate-spin" />
+    </div>
+  )
+
+  if (error) return (
+    <div className="text-center py-32 text-slate-400">
+      <p className="mb-4">{error}</p>
+      <button onClick={() => { setError(null); setLoading(true); setRetryKey(k => k + 1) }}
+        className="text-sm text-[#7B1113] hover:underline">ลองใหม่</button>
     </div>
   )
 
