@@ -200,7 +200,7 @@ export default function CalendarPage() {
           style={{ height: 820 }}
           date={date}
           view={view}
-          onNavigate={d => { setDate(d) }}
+          onNavigate={(d: Date) => { setDate(d) }}
           onView={(v: string) => setView(v)}
           culture="th-TH"
           messages={MESSAGES}
