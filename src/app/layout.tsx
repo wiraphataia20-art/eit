@@ -5,9 +5,23 @@ import Footer from '@/components/Footer'
 import ThemeProvider from '@/components/ThemeProvider'
 
 export const metadata: Metadata = {
-  title: 'SMO Engineering · PSRU',
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'),
+  title: {
+    default: 'SMO Engineering · PSRU',
+    template: '%s | SMO Engineering · PSRU',
+  },
   description: 'สโมสรนักศึกษา คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
   icons: { icon: '/logo.png' },
+  openGraph: {
+    siteName: 'SMO Engineering · PSRU',
+    locale: 'th_TH',
+    type: 'website',
+    images: [{ url: '/logo.png', width: 512, height: 512, alt: 'SMO Engineering PSRU' }],
+  },
+  twitter: {
+    card: 'summary',
+    images: ['/logo.png'],
+  },
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -3,62 +3,167 @@
 import { useEffect, useState } from 'react'
 import { collection, query, orderBy, onSnapshot } from 'firebase/firestore'
 import { db, isConfigured } from '@/lib/firebase'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, isSameDay, isSameMonth, addMonths, subMonths } from 'date-fns'
+import { dateFnsLocalizer, Calendar as BigCalendar, Views, type View } from 'react-big-calendar'
+import { format, parse, startOfWeek, getDay, addDays, isSameDay } from 'date-fns'
 import { th } from 'date-fns/locale'
-import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react'
 import { getHolidaysForYear } from '@/lib/holidays'
+import { Calendar, X } from 'lucide-react'
+import 'react-big-calendar/lib/css/react-big-calendar.css'
 
-const DEV_DATA = [
-  { id: '1', title: 'กิจกรรมตัวอย่าง', description: 'รายละเอียดกิจกรรม', startDate: new Date(), endDate: null, type: 'activity' },
-]
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: (date: Date) => startOfWeek(date, { weekStartsOn: 0 }),
+  getDay,
+  locales: { 'th-TH': th },
+})
 
-const TYPE_CONFIG: Record<string, { label: string; color: string; dot: string; darkColor: string }> = {
-  activity: { label: 'กิจกรรม', color: 'bg-violet-100 text-violet-700', dot: 'bg-violet-500', darkColor: 'dark:bg-violet-900/40 dark:text-violet-300' },
-  holiday: { label: 'วันหยุด', color: 'bg-red-100 text-[#7B1113]', dot: 'bg-[#7B1113]', darkColor: 'dark:bg-[#7B1113]/20 dark:text-[#E05555]' },
-  important: { label: 'วันสำคัญ', color: 'bg-emerald-100 text-emerald-700', dot: 'bg-emerald-500', darkColor: 'dark:bg-emerald-900/40 dark:text-emerald-300' },
-  meeting: { label: 'ประชุม', color: 'bg-sky-100 text-sky-700', dot: 'bg-sky-500', darkColor: 'dark:bg-sky-900/40 dark:text-sky-300' },
-  other: { label: 'อื่นๆ', color: 'bg-slate-100 text-slate-600', dot: 'bg-slate-400', darkColor: 'dark:bg-slate-700/50 dark:text-slate-400' },
+const TYPE_CONFIG: Record<string, { label: string; bg: string }> = {
+  activity: { label: 'กิจกรรม',   bg: '#7C3AED' },
+  holiday:  { label: 'วันหยุด',   bg: '#7B1113' },
+  important:{ label: 'วันสำคัญ',  bg: '#059669' },
+  meeting:  { label: 'ประชุม',    bg: '#0284C7' },
+  other:    { label: 'อื่นๆ',     bg: '#64748B' },
+}
+
+const MESSAGES = {
+  today: 'วันนี้',
+  previous: '‹',
+  next: '›',
+  month: 'เดือน',
+  week: 'สัปดาห์',
+  day: 'วัน',
+  agenda: 'รายการ',
+  date: 'วันที่',
+  time: 'เวลา',
+  event: 'กิจกรรม',
+  noEventsInRange: 'ไม่มีกิจกรรมในช่วงนี้',
+  showMore: (total: number) => `+${total} รายการ`,
 }
 
 export default function CalendarPage() {
-  const [firestoreItems, setFirestoreItems] = useState<any[]>([])
+  const [items, setItems] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentMonth, setCurrentMonth] = useState(new Date())
-  const [selectedDay, setSelectedDay] = useState<Date | null>(null)
+  const [date, setDate] = useState(new Date())
+  const [view, setView] = useState<View>(Views.MONTH)
+  const [selected, setSelected] = useState<any | null>(null)
 
   useEffect(() => {
-    if (!isConfigured) { setFirestoreItems(DEV_DATA); setLoading(false); return }
+    if (!isConfigured) { setLoading(false); return }
     const q = query(collection(db, 'events'), orderBy('startDate', 'asc'))
     const unsub = onSnapshot(q, snap => {
-      setFirestoreItems(snap.docs.map(d => ({
-        id: d.id, ...d.data(),
-        startDate: d.data().startDate?.toDate(),
-        endDate: d.data().endDate?.toDate(),
-      })))
+      setItems(snap.docs.map(d => {
+        const data = d.data()
+        const startDate: Date = data.startDate?.toDate()
+        const endDate: Date | null = data.endDate?.toDate() ?? null
+        return {
+          id: d.id,
+          title: data.title,
+          description: data.description ?? '',
+          type: data.type ?? 'other',
+          start: startDate,
+          end: endDate ?? startDate,
+          allDay: true,
+        }
+      }))
       setLoading(false)
     })
     return unsub
   }, [])
 
-  const holidays = getHolidaysForYear(currentMonth.getFullYear())
-  const items = [...firestoreItems, ...holidays]
+  const holidays = getHolidaysForYear(date.getFullYear()).map(h => ({
+    id: h.id,
+    title: h.title,
+    description: '',
+    type: h.type,
+    start: h.startDate,
+    end: h.startDate,
+    allDay: true,
+  }))
 
-  const days = eachDayOfInterval({ start: startOfMonth(currentMonth), end: endOfMonth(currentMonth) })
-  const startPad = getDay(startOfMonth(currentMonth))
+  const events = [...items, ...holidays]
 
-  function eventsOnDay(day: Date) {
-    return items.filter(item => {
-      if (!item.startDate) return false
-      if (isSameDay(item.startDate, day)) return true
-      if (item.endDate && item.startDate <= day && day <= item.endDate) return true
-      return false
-    })
+  function eventStyleGetter(event: any) {
+    const cfg = TYPE_CONFIG[event.type] ?? TYPE_CONFIG.other
+    return {
+      style: {
+        backgroundColor: cfg.bg,
+        border: 'none',
+        borderRadius: '5px',
+        color: '#fff',
+        fontSize: '12px',
+        padding: '1px 6px',
+      },
+    }
   }
 
-  const selectedEvents = selectedDay ? eventsOnDay(selectedDay) : []
+  const selectedDisplayEnd = selected?.end
+    ? isSameDay(selected.start, selected.end)
+      ? null
+      : addDays(selected.end, -1)
+    : null
+  const showRange = selectedDisplayEnd && !isSameDay(selected.start, selectedDisplayEnd)
 
   return (
-    <div className="max-w-4xl mx-auto px-6 py-12">
+    <div className="max-w-6xl mx-auto px-4 py-10">
+      <style>{`
+        /* ── Light mode ─────────────────────────────── */
+        .rbc-calendar { font-family: inherit; }
+        .rbc-toolbar { margin-bottom: 16px; flex-wrap: wrap; gap: 8px; }
+        .rbc-toolbar button {
+          border-radius: 10px; border: 1px solid #e2e8f0; color: #475569;
+          padding: 6px 14px; font-size: 13px; cursor: pointer; background: #fff; transition: all 0.15s; }
+        .rbc-toolbar button:hover { background: #f8fafc; border-color: #7B1113; color: #7B1113; }
+        .rbc-toolbar button.rbc-active,
+        .rbc-toolbar button.rbc-active:hover { background: #7B1113 !important; color: #fff !important; border-color: #7B1113 !important; }
+        .rbc-toolbar-label { font-weight: 700; font-size: 18px; color: #1e293b; }
+        .rbc-header { padding: 10px 4px; font-size: 12px; font-weight: 600;
+          color: #94a3b8; background: #f8fafc; border-bottom: 1px solid #f1f5f9; }
+        .rbc-header + .rbc-header { border-left: 1px solid #f1f5f9; }
+        .rbc-today { background: #fff7f7 !important; }
+        .rbc-date-cell { padding: 4px 6px; font-size: 13px; }
+        .rbc-date-cell > button { color: #475569; }
+        .rbc-date-cell.rbc-now > button { background: #7B1113; color: #fff;
+          border-radius: 50%; width: 26px; height: 26px; display: inline-flex;
+          align-items: center; justify-content: center; font-weight: 700; }
+        .rbc-off-range-bg { background: #f8fafc; }
+        .rbc-off-range > button { color: #cbd5e1 !important; }
+        .rbc-month-view { border: 1px solid #f1f5f9; border-radius: 16px; overflow: hidden; background: #fff; }
+        .rbc-month-row { min-height: 160px; }
+        .rbc-month-row + .rbc-month-row { border-top: 1px solid #f1f5f9; }
+        .rbc-day-bg + .rbc-day-bg { border-left: 1px solid #f1f5f9; }
+        .rbc-event { cursor: pointer; }
+        .rbc-event:focus { outline: none; box-shadow: none; }
+        .rbc-show-more { color: #7B1113; font-size: 11px; font-weight: 600; background: transparent; padding: 0 6px; }
+        .rbc-event-label { display: none; }
+
+        /* ── Dark mode ──────────────────────────────── */
+        .dark .rbc-toolbar button {
+          background: #1e293b; border-color: #334155; color: #94a3b8; }
+        .dark .rbc-toolbar button:hover {
+          background: #1e293b; border-color: #7B1113; color: #E05555; }
+        .dark .rbc-toolbar button.rbc-active,
+        .dark .rbc-toolbar button.rbc-active:hover {
+          background: #7B1113 !important; color: #fff !important; border-color: #7B1113 !important; }
+        .dark .rbc-toolbar-label { color: #f1f5f9; }
+        .dark .rbc-month-view {
+          background: #1e293b; border-color: #334155; }
+        .dark .rbc-header {
+          background: #0f172a; color: #64748b; border-bottom-color: #334155; }
+        .dark .rbc-header + .rbc-header { border-left-color: #334155; }
+        .dark .rbc-today { background: #2d1214 !important; }
+        .dark .rbc-date-cell > button { color: #94a3b8; }
+        .dark .rbc-date-cell.rbc-now > button { background: #7B1113; color: #fff; }
+        .dark .rbc-off-range-bg { background: #0f172a; }
+        .dark .rbc-off-range > button { color: #334155 !important; }
+        .dark .rbc-month-row + .rbc-month-row { border-top-color: #334155; }
+        .dark .rbc-day-bg + .rbc-day-bg { border-left-color: #334155; }
+        .dark .rbc-show-more { color: #E05555; }
+        .dark .rbc-popup {
+          background: #1e293b; border-color: #334155; border-radius: 12px; }
+        .dark .rbc-popup-header { color: #f1f5f9; border-bottom-color: #334155; }
+      `}</style>
+
       <div className="flex items-center gap-3 mb-8">
         <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-[#7B1113] to-[#9B1416] flex items-center justify-center shadow-sm">
           <Calendar size={20} className="text-white" />
@@ -70,119 +175,73 @@ export default function CalendarPage() {
       </div>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mb-6">
-        {Object.entries(TYPE_CONFIG).map(([key, cfg]) => (
-          <span key={key} className={`flex items-center gap-1.5 text-xs px-3 py-1 rounded-full ${cfg.color} ${cfg.darkColor}`}>
-            <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
+      <div className="flex flex-wrap gap-2 mb-6">
+        {Object.entries(TYPE_CONFIG).map(([, cfg]) => (
+          <span key={cfg.label}
+            className="flex items-center gap-1.5 text-xs px-3 py-1 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-600 dark:text-slate-300 shadow-sm">
+            <span className="w-2.5 h-2.5 rounded-full" style={{ background: cfg.bg }} />
             {cfg.label}
           </span>
         ))}
       </div>
 
-      <div className="bg-white dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-700/50 overflow-hidden shadow-sm">
-        {/* Month nav */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#7B1113]/15 dark:border-[#7B1113]/20">
-          <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition text-slate-500 dark:text-slate-400">
-            <ChevronLeft size={18} />
-          </button>
-          <h2 className="font-bold text-slate-800 dark:text-white text-lg">
-            {format(currentMonth, 'MMMM yyyy', { locale: th })}
-          </h2>
-          <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-            className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700/50 transition text-slate-500 dark:text-slate-400">
-            <ChevronRight size={18} />
-          </button>
+      {loading ? (
+        <div className="flex justify-center py-24">
+          <div className="w-8 h-8 border-4 border-[#7B1113]/20 border-t-[#7B1113] rounded-full animate-spin" />
         </div>
+      ) : (
+        <BigCalendar
+          localizer={localizer}
+          events={events}
+          startAccessor="start"
+          endAccessor="end"
+          allDayAccessor="allDay"
+          style={{ height: 820 }}
+          date={date}
+          view={view}
+          onNavigate={d => { setDate(d) }}
+          onView={v => setView(v)}
+          culture="th-TH"
+          messages={MESSAGES}
+          eventPropGetter={eventStyleGetter}
+          onSelectEvent={ev => setSelected(ev)}
+          popup
+          popupOffset={10}
+        />
+      )}
 
-        {/* Day headers */}
-        <div className="grid grid-cols-7 border-b border-[#7B1113]/15 dark:border-[#7B1113]/20">
-          {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((d, i) => (
-            <div key={d} className={`text-center text-xs font-semibold py-3 ${i === 0 ? 'text-[#7B1113] dark:text-[#E05555]' : 'text-slate-400 dark:text-slate-500'}`}>{d}</div>
-          ))}
-        </div>
-
-        {/* Calendar grid */}
-        {loading ? (
-          <div className="flex justify-center py-16">
-            <div className="w-8 h-8 border-4 border-[#7B1113]/20 border-t-[#7B1113] rounded-full animate-spin" />
-          </div>
-        ) : (
-          <div className="grid grid-cols-7">
-            {Array.from({ length: startPad }).map((_, i) => (
-              <div key={`pad-${i}`} className="min-h-[80px] border-b border-r border-[#7B1113]/10 dark:border-[#7B1113]/15" />
-            ))}
-            {days.map(day => {
-              const dayEvents = eventsOnDay(day)
-              const isToday = isSameDay(day, new Date())
-              const hasEvents = dayEvents.length > 0
-              const isSunday = getDay(day) === 0
-              return (
-                <div
-                  key={day.toISOString()}
-                  onClick={() => hasEvents && setSelectedDay(day)}
-                  className={`min-h-[80px] border-b border-r border-[#7B1113]/10 dark:border-[#7B1113]/15 p-2 flex flex-col transition-colors ${hasEvents ? 'cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700/30' : ''}`}
-                >
-                  <span className={`text-sm font-medium w-7 h-7 flex items-center justify-center rounded-full mb-1 transition-colors
-                    ${isToday ? 'bg-[#7B1113] text-white shadow-sm' : isSunday ? 'text-[#7B1113] dark:text-[#E05555]' : 'text-slate-700 dark:text-slate-300'}`}>
-                    {format(day, 'd')}
-                  </span>
-                  <div className="flex flex-col gap-0.5">
-                    {dayEvents.slice(0, 2).map(ev => {
-                      const cfg = TYPE_CONFIG[ev.type] || TYPE_CONFIG.other
-                      return (
-                        <span key={ev.id} className={`text-xs px-1.5 py-0.5 rounded-md truncate ${cfg.color} ${cfg.darkColor}`}>
-                          {ev.title}
-                        </span>
-                      )
-                    })}
-                    {dayEvents.length > 2 && (
-                      <span className="text-xs text-slate-400 dark:text-slate-500 px-1">+{dayEvents.length - 2}</span>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-      </div>
-
-      {/* Modal */}
-      {selectedDay && selectedEvents.length > 0 && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4" onClick={() => setSelectedDay(null)}>
-          <div className="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-md p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <p className="text-xs text-slate-400 dark:text-slate-500 font-mono uppercase tracking-widest mb-0.5">กิจกรรมวันนี้</p>
-                <h3 className="font-bold text-slate-800 dark:text-white text-lg">
-                  {format(selectedDay, 'dd MMMM yyyy', { locale: th })}
-                </h3>
+      {/* Event detail modal */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 px-4"
+          onClick={() => setSelected(null)}>
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full"
+                  style={{ background: (TYPE_CONFIG[selected.type] ?? TYPE_CONFIG.other).bg }} />
+                <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">
+                  {(TYPE_CONFIG[selected.type] ?? TYPE_CONFIG.other).label}
+                </span>
               </div>
-              <button onClick={() => setSelectedDay(null)}
-                className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
-                <X size={18} />
+              <button onClick={() => setSelected(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                <X size={16} />
               </button>
             </div>
-            <div className="flex flex-col gap-3">
-              {selectedEvents.map(ev => {
-                const cfg = TYPE_CONFIG[ev.type] || TYPE_CONFIG.other
-                return (
-                  <div key={ev.id} className={`rounded-xl p-4 ${cfg.color} ${cfg.darkColor}`}>
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className={`w-2 h-2 rounded-full ${cfg.dot}`} />
-                      <span className="text-xs font-semibold tracking-wide">{cfg.label}</span>
-                    </div>
-                    <p className="font-bold text-sm">{ev.title}</p>
-                    {ev.description && <p className="text-xs mt-1 opacity-75 leading-relaxed">{ev.description}</p>}
-                    {ev.endDate && (
-                      <p className="text-xs mt-1.5 opacity-60">
-                        ถึง {format(ev.endDate, 'dd MMM yyyy', { locale: th })}
-                      </p>
-                    )}
-                  </div>
-                )
-              })}
-            </div>
+
+            <h3 className="font-bold text-xl text-slate-800 mb-3 leading-snug">{selected.title}</h3>
+
+            <p className="text-sm text-slate-500">
+              {format(selected.start, 'dd MMMM yyyy', { locale: th })}
+              {showRange && (
+                <> — {format(selectedDisplayEnd!, 'dd MMMM yyyy', { locale: th })}</>
+              )}
+            </p>
+
+            {selected.description && (
+              <p className="text-sm text-slate-600 mt-3 leading-relaxed">{selected.description}</p>
+            )}
           </div>
         </div>
       )}

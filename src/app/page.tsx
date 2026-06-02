@@ -1,4 +1,15 @@
+import type { Metadata } from 'next'
 import Link from 'next/link'
+
+export const metadata: Metadata = {
+  title: 'SMO Engineering · PSRU',
+  description: 'สโมสรนักศึกษา คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
+  openGraph: {
+    title: 'SMO Engineering · PSRU',
+    description: 'สโมสรนักศึกษา คณะวิศวกรรมศาสตร์และเทคโนโลยีอุตสาหกรรม มหาวิทยาลัยราชภัฏพิบูลสงคราม',
+    url: '/',
+  },
+}
 import { cookies } from 'next/headers'
 import { Megaphone, Calendar, ImageIcon, BookOpen, Users, ArrowRight } from 'lucide-react'
 import PinnedAnnouncement from '@/components/PinnedAnnouncement'
