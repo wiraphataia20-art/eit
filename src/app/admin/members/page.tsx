@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { collection, getDocs, doc, updateDoc, deleteDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { db, auth, isConfigured } from '@/lib/firebase'
+import { createUserWithEmailAndPassword, getAuth } from 'firebase/auth'
+import { initializeApp, deleteApp } from 'firebase/app'
+import { db, isConfigured, firebaseConfig } from '@/lib/firebase'
 import { UserCircle, Shield, User, Trash2, Plus } from 'lucide-react'
 
 const DEV_MEMBERS = [
@@ -30,13 +31,17 @@ export default function AdminMembersPage() {
     e.preventDefault()
     if (!isConfigured) { alert('ต้องตั้งค่า Firebase ก่อน'); return }
     setLoading(true)
+    // Use a secondary app so the admin's own session is not replaced
+    const secondaryApp = initializeApp(firebaseConfig, `create-user-${Date.now()}`)
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, newEmail, newPassword)
+      const { user } = await createUserWithEmailAndPassword(getAuth(secondaryApp), newEmail, newPassword)
       await setDoc(doc(db, 'profiles', user.uid), { email: newEmail, role: newRole, createdAt: serverTimestamp() })
       setNewEmail(''); setNewPassword('')
       fetchMembers()
     } catch (err: any) {
       alert(err.message)
+    } finally {
+      await deleteApp(secondaryApp)
     }
     setLoading(false)
   }
@@ -49,6 +54,15 @@ export default function AdminMembersPage() {
 
   async function handleDelete(id: string) {
     if (!isConfigured) return
+    try {
+      await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ uid: id }),
+      })
+    } catch {
+      // continue to remove profile even if Auth deletion fails
+    }
     await deleteDoc(doc(db, 'profiles', id))
     fetchMembers()
   }

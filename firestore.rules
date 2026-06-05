@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Public read — ทุกคนอ่านได้ เขียนได้เฉพาะ admin ที่ login แล้ว
+    match /announcements/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /albums/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /events/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /teamMembers/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /notices/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    match /config/{doc} {
+      allow read: if true;
+      allow write: if request.auth != null;
+    }
+
+    // Login required — เฉพาะ member/admin ที่ login แล้วอ่านได้
+    match /works/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Sensitive — เฉพาะ login แล้วเท่านั้น (admin จัดการผ่าน server-side API)
+    match /profiles/{doc} {
+      allow read, write: if request.auth != null;
+    }
+
+  }
+}

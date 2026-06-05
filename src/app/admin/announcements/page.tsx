@@ -107,7 +107,7 @@ export default function AdminAnnouncementsPage() {
         ? await Promise.all(contentImageFiles.map(f => uploadToCloudinary(f)))
         : []
       const attachments = attachmentFiles.length > 0
-        ? await Promise.all(attachmentFiles.map(async f => ({ name: f.name, url: await uploadFileToSupabase(f) })))
+        ? await Promise.all(attachmentFiles.map(f => uploadFileToSupabase(f)))
         : []
 
       await addDoc(collection(db, 'announcements'), {
@@ -164,7 +164,7 @@ export default function AdminAnnouncementsPage() {
 
       const existingAttachments: any[] = editingItem.attachments || []
       const newAttachments = editNewAttachments.length > 0
-        ? await Promise.all(editNewAttachments.map(async f => ({ name: f.name, url: await uploadFileToSupabase(f) })))
+        ? await Promise.all(editNewAttachments.map(f => uploadFileToSupabase(f)))
         : []
 
       await updateDoc(doc(db, 'announcements', editingItem.id), {

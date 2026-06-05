@@ -12,7 +12,7 @@ export default function PinnedAnnouncement() {
   const [expanded, setExpanded] = useState(false)
 
   useEffect(() => {
-    async function fetch() {
+    async function loadPinned() {
       if (!isConfigured) return
       const q = query(collection(db, 'announcements'), where('isPinned', '==', true))
       const snap = await getDocs(q)
@@ -23,7 +23,7 @@ export default function PinnedAnnouncement() {
         .sort((a, b) => (b.publishAt?.getTime() ?? 0) - (a.publishAt?.getTime() ?? 0))
       if (valid.length > 0) setAnnouncement(valid[0])
     }
-    fetch()
+    loadPinned()
   }, [])
 
   if (!announcement || dismissed) return null

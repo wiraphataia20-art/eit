@@ -29,14 +29,18 @@ export default function AdminCalendarPage() {
     e.preventDefault()
     if (!isConfigured) { alert('ต้องตั้งค่า Firebase ก่อน'); return }
     setLoading(true)
-    await addDoc(collection(db, 'events'), {
-      title, description, type,
-      startDate: Timestamp.fromDate(new Date(startDate)),
-      endDate: endDate ? Timestamp.fromDate(new Date(endDate)) : null,
-      createdAt: serverTimestamp(),
-    })
-    setTitle(''); setDescription(''); setStartDate(''); setEndDate(''); setType('activity')
-    fetchItems()
+    try {
+      await addDoc(collection(db, 'events'), {
+        title, description, type,
+        startDate: Timestamp.fromDate(new Date(startDate)),
+        endDate: endDate ? Timestamp.fromDate(new Date(endDate)) : null,
+        createdAt: serverTimestamp(),
+      })
+      setTitle(''); setDescription(''); setStartDate(''); setEndDate(''); setType('activity')
+      fetchItems()
+    } catch (err: any) {
+      alert(err.message)
+    }
     setLoading(false)
   }
 

@@ -19,13 +19,15 @@ const DEV_DATA = [
 ]
 
 /* Auto-detect URLs and render as clickable links */
+const SPLIT_URL_RE = /(https?:\/\/[^\s]+)/g
+const TEST_URL_RE = /^https?:\/\/[^\s]+$/
+
 function RichContent({ text }: { text: string }) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g
-  const parts = text.split(urlRegex)
+  const parts = text.split(SPLIT_URL_RE)
   return (
     <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed whitespace-pre-line">
       {parts.map((part, i) =>
-        urlRegex.test(part) ? (
+        TEST_URL_RE.test(part) ? (
           <a key={i} href={part} target="_blank" rel="noopener noreferrer"
             onClick={e => e.stopPropagation()}
             className="text-blue-500 underline underline-offset-2 hover:text-blue-700 break-all">

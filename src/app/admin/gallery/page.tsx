@@ -16,10 +16,18 @@ export default function AdminGalleryPage() {
   const [driveFolderUrl, setDriveFolderUrl] = useState('')
   const [coverFile, setCoverFile] = useState<File | null>(null)
   const [imageFiles, setImageFiles] = useState<File[]>([])
+  const [coverPreviewUrl, setCoverPreviewUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploadingFor, setUploadingFor] = useState<string | null>(null)
-  const [addFiles, setAddFiles] = useState<File[]>([])
+  const [addFilesMap, setAddFilesMap] = useState<Record<string, File[]>>({})
   const [driveLinks, setDriveLinks] = useState<Record<string, string>>({})
+
+  useEffect(() => {
+    if (!coverFile) { setCoverPreviewUrl(null); return }
+    const url = URL.createObjectURL(coverFile)
+    setCoverPreviewUrl(url)
+    return () => URL.revokeObjectURL(url)
+  }, [coverFile])
 
   function parseDriveLinks(text: string): string[] {
     const lines = text.split('\n').map(l => l.trim()).filter(Boolean)
@@ -71,6 +79,7 @@ export default function AdminGalleryPage() {
       setName(''); setDescription(''); setDate(''); setDriveFolderUrl('')
       setCoverFile(null); setImageFiles([])
       fetchAlbums()
+
     } catch (err: any) { alert(err.message) }
     setLoading(false)
   }
@@ -82,13 +91,14 @@ export default function AdminGalleryPage() {
   }
 
   async function handleAddImages(album: any) {
-    if (!isConfigured || addFiles.length === 0) return
+    const files = addFilesMap[album.id] ?? []
+    if (!isConfigured || files.length === 0) return
     setUploadingFor(album.id)
     try {
-      const newUrls: string[] = await Promise.all(addFiles.map(f => uploadToCloudinary(f)))
+      const newUrls: string[] = await Promise.all(files.map(f => uploadToCloudinary(f)))
       const merged = [...(album.images ?? []), ...newUrls]
       await updateDoc(doc(db, 'albums', album.id), { images: merged })
-      setAddFiles([])
+      setAddFilesMap(p => ({ ...p, [album.id]: [] }))
       setUploadingFor(null)
       fetchAlbums()
     } catch (err: any) { alert(err.message); setUploadingFor(null) }
@@ -136,7 +146,7 @@ export default function AdminGalleryPage() {
         <div className="flex flex-col gap-1">
           <label className="text-xs text-slate-500">รูปปก (ไม่บังคับ)</label>
           <input type="file" accept="image/*" onChange={e => setCoverFile(e.target.files?.[0] || null)} className="text-sm text-slate-500" />
-          {coverFile && <img src={URL.createObjectURL(coverFile)} alt="preview" className="w-full h-40 object-cover rounded-xl mt-1" />}
+          {coverPreviewUrl && <img src={coverPreviewUrl} alt="preview" className="w-full h-40 object-cover rounded-xl mt-1" />}
         </div>
 
         <div className="flex flex-col gap-2">
@@ -218,12 +228,12 @@ export default function AdminGalleryPage() {
                 {/* Option A: upload */}
                 <div className="flex items-center gap-2">
                   <input type="file" accept="image/*" multiple
-                    onChange={e => setAddFiles(e.target.files ? Array.from(e.target.files) : [])}
+                    onChange={e => setAddFilesMap(p => ({ ...p, [album.id]: e.target.files ? Array.from(e.target.files) : [] }))}
                     className="flex-1 text-xs text-slate-500 border border-slate-200 rounded-xl px-3 py-1.5" />
                   <button onClick={() => handleAddImages(album)}
-                    disabled={uploadingFor === album.id || addFiles.length === 0}
+                    disabled={uploadingFor === album.id || (addFilesMap[album.id] ?? []).length === 0}
                     className="shrink-0 bg-amber-500 text-white text-xs px-3 py-1.5 rounded-xl hover:bg-amber-600 transition disabled:opacity-40">
-                    {uploadingFor === album.id ? 'กำลังอัปโหลด...' : `อัปโหลด${addFiles.length > 0 ? ` (${addFiles.length})` : ''}`}
+                    {uploadingFor === album.id ? 'กำลังอัปโหลด...' : `อัปโหลด${(addFilesMap[album.id] ?? []).length > 0 ? ` (${(addFilesMap[album.id] ?? []).length})` : ''}`}
                   </button>
                 </div>
 
