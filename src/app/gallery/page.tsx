@@ -7,6 +7,10 @@ import { ImageIcon, FolderOpen, ExternalLink, X, ChevronLeft, ChevronRight } fro
 import { format } from 'date-fns'
 import { th } from 'date-fns/locale'
 
+function getAcademicYear(date: Date): number {
+  return date.getMonth() + 1 >= 5 ? date.getFullYear() : date.getFullYear() - 1
+}
+
 export default function GalleryPage() {
   const [albums, setAlbums] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -14,6 +18,7 @@ export default function GalleryPage() {
   const [retryKey, setRetryKey] = useState(0)
   const [selectedAlbum, setSelectedAlbum] = useState<any | null>(null)
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
+  const [selectedYear, setSelectedYear] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isConfigured) { setLoading(false); return }
@@ -27,6 +32,14 @@ export default function GalleryPage() {
     })
     return unsub
   }, [retryKey])
+
+  const academicYears = Array.from(
+    new Set(albums.filter(a => a.date).map(a => getAcademicYear(a.date)))
+  ).sort((a, b) => b - a)
+
+  const filteredAlbums = selectedYear === null
+    ? albums
+    : albums.filter(a => a.date && getAcademicYear(a.date) === selectedYear)
 
   const images: string[] = selectedAlbum?.images ?? []
 
@@ -78,8 +91,34 @@ export default function GalleryPage() {
           <p>ยังไม่มีอัลบั้ม</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {albums.map(album => {
+        <>
+          {academicYears.length > 1 && (
+            <div className="flex gap-2 mb-8 flex-wrap">
+              <button
+                onClick={() => setSelectedYear(null)}
+                className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+                  selectedYear === null
+                    ? 'bg-amber-500 text-white'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                }`}>
+                ทั้งหมด
+              </button>
+              {academicYears.map(year => (
+                <button
+                  key={year}
+                  onClick={() => setSelectedYear(year)}
+                  className={`px-4 py-1.5 rounded-full text-sm font-medium transition-colors duration-200 ${
+                    selectedYear === year
+                      ? 'bg-amber-500 text-white'
+                      : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-700 dark:hover:text-slate-300'
+                  }`}>
+                  ปี {year + 543}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredAlbums.map(album => {
             const imgs: string[] = album.images ?? []
             return (
               <button key={album.id} onClick={() => setSelectedAlbum(album)}
@@ -115,7 +154,8 @@ export default function GalleryPage() {
               </button>
             )
           })}
-        </div>
+          </div>
+        </>
       )}
 
       {/* Album modal */}
