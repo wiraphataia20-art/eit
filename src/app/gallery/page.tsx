@@ -17,7 +17,7 @@ export default function GalleryPage() {
 
   useEffect(() => {
     if (!isConfigured) { setLoading(false); return }
-    const q = query(collection(db, 'albums'), orderBy('createdAt', 'desc'))
+    const q = query(collection(db, 'albums'), orderBy('date', 'desc'))
     const unsub = onSnapshot(q, snap => {
       setAlbums(snap.docs.map(d => ({ id: d.id, ...d.data(), date: d.data().date?.toDate() })))
       setLoading(false)
@@ -133,14 +133,14 @@ export default function GalleryPage() {
                 {selectedAlbum.description && (
                   <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{selectedAlbum.description}</p>
                 )}
-              </div>
-              <div className="flex items-center gap-2 ml-4 shrink-0">
                 {selectedAlbum.driveFolderUrl && (
                   <a href={selectedAlbum.driveFolderUrl} target="_blank" rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-3 py-1.5 rounded-xl hover:bg-amber-50 transition">
+                    className="inline-flex items-center gap-1.5 text-xs text-amber-600 hover:text-amber-700 border border-amber-200 px-3 py-1.5 rounded-xl hover:bg-amber-50 transition mt-2">
                     <ExternalLink size={12} />Google Drive
                   </a>
                 )}
+              </div>
+              <div className="flex items-center gap-2 ml-4 shrink-0">
                 <button onClick={() => setSelectedAlbum(null)}
                   className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition">
                   <X size={18} />

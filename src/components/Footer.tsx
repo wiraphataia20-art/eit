@@ -56,7 +56,7 @@ export default async function Footer() {
           <img src="/logo.png" alt="SMO" className="w-8 h-8 object-contain opacity-90" />
           <div>
             <p className="text-white font-bold text-sm tracking-widest">SMO</p>
-            <p className="text-xs text-slate-600">© 2026 · Engineering &amp; Industrial Technology</p>
+            <p className="text-xs text-slate-600">© 2026 · <a href="https://technology.psru.ac.th/" target="_blank" rel="noopener noreferrer" className="hover:text-slate-400 transition-colors duration-200">Engineering &amp; Industrial Technology</a></p>
           </div>
         </div>
 
