@@ -57,10 +57,17 @@ export default function AnnouncementsPage() {
         eventDate: d.data().eventDate?.toDate(),
       }))
       setItems(all.filter(item => {
-        if (!item.eventDate) return true
-        const expiry = new Date(item.eventDate)
-        expiry.setDate(expiry.getDate() + 3)
-        return now <= expiry
+        if (item.eventDate) {
+          const expiry = new Date(item.eventDate)
+          expiry.setDate(expiry.getDate() + 3)
+          return now <= expiry
+        }
+        if (item.createdAt) {
+          const expiry = new Date(item.createdAt)
+          expiry.setDate(expiry.getDate() + 14)
+          return now <= expiry
+        }
+        return true
       }))
       setLoading(false)
     }, () => {
